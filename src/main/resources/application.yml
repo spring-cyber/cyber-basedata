@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: cyber-basedata
+  cloud:
+    nacos:
+      discovery:
+        namespace: ${nacos_namespace:e37c06b6-14d4-486f-bee1-866123743ba9}
+        server-addr: ${nacos_serveraddr:192.168.0.11:30287}
+        group: ${nacos_group:ljm}
+      config:
+        namespace: ${nacos_namespace:e37c06b6-14d4-486f-bee1-866123743ba9}
+        server-addr: ${nacos_serveraddr:192.168.0.11:30287}
+        username: ${nacos_username:nacos}
+        password: ${nacos_password:nacos}
+        group: ${nacos_group:DEFAULT_GROUP}
+        file-extension: yml
+  config:
+    import:
+      - nacos:application.yml
+      - nacos:cyber-basedata.yml
+  main:
+    allow-bean-definition-overriding: true

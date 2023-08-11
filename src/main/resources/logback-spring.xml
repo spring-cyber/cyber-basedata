@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty scope="context" name="product" source="spring.application.product"/>
+    <springProperty scope="context" name="name" source="spring.application.name"/>
+    <springProperty scope="context" name="version" source="spring.application.version"/>
+    <springProperty scope="context" name="LOG_BASE" source="spring.application.logHome"/>
+    <springProperty scope="context" name="LOG_LEVEL" source="logging.level.root"/>
+
+    <property name="LOG_BASE" value="${LOG_BASE:-/mwbase/applogs/rtlog/default}"/>
+    <property name="LOG_SIZE" value="${LOG_SIZE:-100MB}"/>
+    <property name="LOG_MAX" value="${LOG_MAX:-30}"/>
+    <property name="LOG_LEVEL" value="${LOG_LEVEL:info}"/>
+    <property name="LOG_TOTAL_SIZE" value="${LOG_TOTAL_SIZE:-10GB}"/>
+
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${LOG_LEVEL}</level>
+        </filter>
+        <encoder>
+            <Pattern>
+                [%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ}][%-5p][%t][%C][%X{X-B3-TraceId:-}|%X{X-B3-SpanId:-}|%X{X-B3-ParentSpanId:-}|%X{X-SpanExport:-}][%X{keywords}]%m%n
+            </Pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!--filter class="com.cmft.marathon.log.TraceLogFilter"></filter-->
+    </appender>
+
+    <appender name="traceAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE}/trace.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>[%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ}][%t]%m%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE}/trace.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${LOG_SIZE}</maxFileSize>
+            <maxHistory>${LOG_MAX}</maxHistory>
+            <totalSizeCap>${LOG_TOTAL_SIZE}</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="trace" level="INFO" additivity="false">
+        <appender-ref ref="traceAppender"/>
+    </logger>
+
+    <appender name="metricAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE}/metric.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>
+                [%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ}][%-5p][%t][%C][%X{X-B3-TraceId:-}|%X{X-B3-SpanId:-}|%X{X-B3-ParentSpanId:-}|%X{X-SpanExport:-}][%X{keywords}][%m]%n
+            </pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE}/metric.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${LOG_SIZE}</maxFileSize>
+            <maxHistory>${LOG_MAX}</maxHistory>
+            <totalSizeCap>${LOG_TOTAL_SIZE}</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="metric" level="INFO" additivity="false">
+        <appender-ref ref="metricAppender"/>
+    </logger>
+
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE}/file.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                [%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ}][%-5p][%t][%C][%X{X-B3-TraceId:-}|%X{X-B3-SpanId:-}|%X{X-B3-ParentSpanId:-}|%X{X-SpanExport:-}][%X{keywords}]%m%n
+            </Pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE}/file.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${LOG_SIZE}</maxFileSize>
+            <maxHistory>${LOG_MAX}</maxHistory>
+            <totalSizeCap>${LOG_TOTAL_SIZE}</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="console"/>
+        <!--<appender-ref ref="traceAppender"/>-->
+        <appender-ref ref="file"/>
+    </root>
+</configuration>
