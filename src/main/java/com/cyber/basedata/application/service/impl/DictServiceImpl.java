@@ -1,5 +1,6 @@
 package com.cyber.basedata.application.service.impl;
 
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.lang.tree.TreeNode;
 import cn.hutool.core.lang.tree.TreeUtil;
@@ -233,10 +234,12 @@ public class DictServiceImpl implements DictService {
         String cacheKey = getCacheKey(dictGroupCode, dictTypeCode);
         List<Dict> dictDatas = redisService.getCacheObject(cacheKey);
         if (!CollectionUtils.isEmpty(dictDatas)) {
+            dictDatas = ListUtil.sortByProperty(dictDatas, "orderNum");
             return dictDatas;
         }
         dictDatas = dictMapper.selectDictDataByType(dictGroupCode, dictTypeCode);
         if (!CollectionUtils.isEmpty(dictDatas)) {
+            dictDatas = ListUtil.sortByProperty(dictDatas, "orderNum");
             redisService.setCacheObject(cacheKey, dictDatas);
             return dictDatas;
         }
