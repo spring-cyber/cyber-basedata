@@ -11,4 +11,5 @@ public interface AreaMapper extends BaseMapper<Area> {
 
     List<Area> selectArea(Area area);
 
+    int hasChildByAreaId(String areaId);
 }

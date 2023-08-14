@@ -136,4 +136,11 @@ public class AreaServiceImpl implements AreaService {
 
         return TreeUtil.build(collect, "0");
     }
+
+    @Override
+    public boolean hasChildByAreaId(String areaId) {
+
+        int result = areaMapper.hasChildByAreaId(areaId);
+        return result > 0;
+    }
 }

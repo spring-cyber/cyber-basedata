@@ -93,6 +93,9 @@ public class AreaRest extends AuthingTokenController{
 		Area area = new Area();
 		area.setId(idRequest.getId());
 
+		if (areaService.hasChildByAreaId(idRequest.getId())) {
+			return Response.fail(HttpResultCode.RECORD_EXIST.getCode(), "下级地址库不为空,不允许删除");
+		}
 		area.setTenantCode(idRequest.getTenantCode());
 		area.setUpdator(getSessionId());
         area.setUpdateTime(new Date());

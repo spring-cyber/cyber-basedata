@@ -12,4 +12,6 @@ public interface AreaService extends BaseService<Area> {
     List<Area> selectArea(Area area);
 
     List<Tree<String>> selectTree(Area area);
+
+    boolean hasChildByAreaId(String id);
 }
