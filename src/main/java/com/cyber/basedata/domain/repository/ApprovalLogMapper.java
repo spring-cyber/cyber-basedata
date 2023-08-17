@@ -7,7 +7,5 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface ApprovalLogMapper extends BaseMapper<ApprovalLog> {
 
-    int hasUntreatedByTableId(String tableId);
-
     int hasUntreatedByTableCode(String tableCode);
 }
