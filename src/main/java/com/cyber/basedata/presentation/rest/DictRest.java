@@ -10,6 +10,7 @@ import com.cyber.domain.request.DictRequest;
 import com.cyber.domain.request.UpdateDictRequest;
 import com.cyber.log.annotation.Log;
 import com.cyber.log.enums.BusinessType;
+import com.cyber.security.infrastructure.toolkit.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,7 +65,7 @@ public class DictRest extends AuthingTokenController{
 		return response;
 	}
 
-	@GetMapping(value = "/dict/data/{dictGroupCode}/{dictTypeCode}")
+	@GetMapping(value = "/open/dict/data/{dictGroupCode}/{dictTypeCode}")
 	public Response selectDictDataByType(@PathVariable String dictGroupCode, @PathVariable String dictTypeCode) {
 		DataResponse<List<Dict>> response = new DataResponse<>();
 		List<Dict> dictList = dictService.selectDictDataByType(dictGroupCode, dictTypeCode);
@@ -75,7 +76,7 @@ public class DictRest extends AuthingTokenController{
 	@Log(title = "字典管理", businessType = BusinessType.INSERT)
 	@PostMapping("/dict")
 	public Response saveDict(@RequestBody @Valid CreateDictRequest request) {
-	    Dict  dict = request.toEvent(getSessionId(),request.getTenantCode());
+	    Dict  dict = request.toEvent(SecurityUtils.getUsername(),request.getTenantCode());
 
 		if (!dictService.checkDictNameUnique(dict)) {
 			return Response.fail(HttpResultCode.RECORD_EXIST.getCode(),
@@ -96,7 +97,7 @@ public class DictRest extends AuthingTokenController{
 	@Log(title = "字典管理", businessType = BusinessType.UPDATE)
 	@PutMapping("/dict")
 	public Response updateDict(@RequestBody @Valid UpdateDictRequest request) {
-	    Dict  dict = request.toEvent(getSessionId(),request.getTenantCode());
+	    Dict  dict = request.toEvent(SecurityUtils.getUsername(),request.getTenantCode());
 
 		if (!dictService.checkDictNameUnique(dict)) {
 			return Response.fail(HttpResultCode.RECORD_EXIST.getCode(),
@@ -124,7 +125,7 @@ public class DictRest extends AuthingTokenController{
 		}
 
 		dict.setTenantCode(idRequest.getTenantCode());
-		dict.setUpdator(getSessionId());
+		dict.setUpdator(SecurityUtils.getUsername());
         dict.setUpdateTime(new Date());
 
 		int result = dictService.deleteById(dict);

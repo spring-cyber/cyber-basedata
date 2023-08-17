@@ -7,6 +7,9 @@ import com.cyber.domain.entity.*;
 import com.cyber.domain.request.CreatePlaceRequest;
 import com.cyber.domain.request.PlaceRequest;
 import com.cyber.domain.request.UpdatePlaceRequest;
+import com.cyber.log.annotation.Log;
+import com.cyber.log.enums.BusinessType;
+import com.cyber.security.infrastructure.toolkit.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,9 +55,10 @@ public class PlaceRest extends AuthingTokenController{
 		return response;
 	}
 
+	@Log(title = "地点管理", businessType = BusinessType.INSERT)
 	@PostMapping("/place")
 	public Response savePlace(@RequestBody @Valid CreatePlaceRequest request) {
-	    Place  place = request.toEvent(getSessionId(),request.getTenantCode());
+	    Place  place = request.toEvent(SecurityUtils.getUsername(),request.getTenantCode());
 
 		int result = placeService.save(place);
 		if (result < 1) {
@@ -63,9 +67,10 @@ public class PlaceRest extends AuthingTokenController{
 		return Response.success();
 	}
 
+	@Log(title = "地点管理", businessType = BusinessType.UPDATE)
 	@PutMapping("/place")
 	public Response updatePlace(@RequestBody @Valid UpdatePlaceRequest request) {
-	    Place  place = request.toEvent(getSessionId(),request.getTenantCode());
+	    Place  place = request.toEvent(SecurityUtils.getUsername(),request.getTenantCode());
 		int result = placeService.updateById(place);
 		if (result < 1) {
 			return Response.fail(HttpResultCode.SERVER_ERROR);
@@ -73,13 +78,14 @@ public class PlaceRest extends AuthingTokenController{
 		return Response.success();
 	}
 
+	@Log(title = "地点管理", businessType = BusinessType.DELETE)
 	@DeleteMapping("/place")
 	public Response deletePlace(@Valid IdRequest idRequest) {
 		Place place = new Place();
 		place.setId(idRequest.getId());
 
 		place.setTenantCode(idRequest.getTenantCode());
-		place.setUpdator(getSessionId());
+		place.setUpdator(SecurityUtils.getUsername());
         place.setUpdateTime(new Date());
 
 		int result = placeService.deleteById(place);

@@ -201,7 +201,7 @@ public class DictServiceImpl implements DictService {
     @Override
     public boolean checkDictNameUnique(Dict dict) {
         String dictId = StringUtils.isNull(dict.getId()) ? "" : dict.getId();
-        Dict info = dictMapper.checkMenuNameUnique(dict.getName(), dict.getType(), dict.getParentId());
+        Dict info = dictMapper.checkDictNameUnique(dict.getName(), dict.getType(), dict.getParentId());
         if (StringUtils.isNotNull(info) && !Objects.equals(info.getId(), dictId)) {
             return Constants.NOT_UNIQUE;
         }
@@ -211,7 +211,7 @@ public class DictServiceImpl implements DictService {
     @Override
     public boolean checkDictCodeUnique(Dict dict) {
         String dictId = StringUtils.isNull(dict.getId()) ? "" : dict.getId();
-        Dict info = dictMapper.checkMenuCodeUnique(dict.getCode(), dict.getType(), dict.getParentId());
+        Dict info = dictMapper.checkDictCodeUnique(dict.getCode(), dict.getType(), dict.getParentId());
         if (StringUtils.isNotNull(info) && !Objects.equals(info.getId(), dictId)) {
             return Constants.NOT_UNIQUE;
         }

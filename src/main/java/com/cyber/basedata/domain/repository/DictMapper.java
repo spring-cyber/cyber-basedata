@@ -12,9 +12,9 @@ public interface DictMapper extends BaseMapper<Dict> {
 
     List<Dict> selectList(Dict dict);
 
-    Dict checkMenuNameUnique(@Param("name") String name, @Param("type") Integer type, @Param("parentId") String parentId);
+    Dict checkDictNameUnique(@Param("name") String name, @Param("type") Integer type, @Param("parentId") String parentId);
 
-    Dict checkMenuCodeUnique(@Param("code") String code,@Param("type") Integer type,@Param("parentId") String parentId);
+    Dict checkDictCodeUnique(@Param("code") String code,@Param("type") Integer type,@Param("parentId") String parentId);
 
     int hasChildByDictId(@Param("dictId") String dictId);
 
