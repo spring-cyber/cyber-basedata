@@ -19,7 +19,7 @@ create table ${tableName}
 <#if indexList?has_content>
     <#list indexList as index>
 create ${index.type} ${index.name}
-    on ${tableName} (${index.columnCode}) comment '${index.description}';
+    on ${tableName} (${index.columnCode} <#if index.sortord?has_content>${index.sortord}</#if>) comment '${index.description}';
 
     </#list>
 </#if>

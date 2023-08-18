@@ -12,9 +12,14 @@ import com.cyber.domain.entity.PagingData;
 import com.cyber.domain.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +41,8 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
     private final TableIndexMapper tableIndexMapper;
 
     private final BaseDataMapper baseDataMapper;
+
+    private final DataSource dataSource;
 
     /**
      * 审批状态 未处理
@@ -118,17 +125,30 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
         tableIndexMapper.saveBatch(baseData.getIndexList());
         tableFkMapper.saveBatch(baseData.getFkList());
 
-        List<String> sqlList = Arrays.stream(temp.getChangeSql().split(";")).filter(StrUtil::isNotBlank).collect(Collectors.toList());
+        executeSql(temp.getChangeSql().split(";"));
 
+        baseDataMapper.updateById(baseData);
+    }
+
+    public void executeSql(String... sqls) {
+        Connection conn;
         try {
-            for (String sql : sqlList) {
-                baseDataMapper.executeSql(sql);
+            conn = DataSourceUtils.getConnection(dataSource);
+            conn.setAutoCommit(false);
+            conn.beginRequest();
+            Statement statement = conn.createStatement();
+
+            for (String sql : Arrays.stream(sqls).filter(StrUtil::isNotBlank).collect(Collectors.toList())) {
+                statement.addBatch(sql);
             }
-        } catch (Exception e) {
+            statement.executeBatch();
+            conn.endRequest();
+            conn.commit();
+
+        } catch (SQLException e) {
             throw new BusinessException("sql执行异常：" + e.getMessage(), HttpResultCode.BAD_SQL_ERROR.getCode());
         }
 
-        baseDataMapper.updateById(baseData);
     }
 
     @Override

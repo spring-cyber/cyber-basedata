@@ -1,5 +1,6 @@
 package com.cyber.basedata.application.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.lang.tree.TreeNode;
 import cn.hutool.core.lang.tree.TreeUtil;
@@ -106,41 +107,56 @@ public class BaseDataServiceImpl implements BaseDataService {
 
         // 数据表 不直接更新 添加到审批表
         if (BASE_DATA_TABLE.equals(baseData.getType())) {
-            String tableSql;
-            //查询当前表是否存在数据库中
-            //表不存在则代表创建表
-            if (Objects.isNull(baseDataMapper.hasTableForDatabase(baseData.getCode()))) {
-                //根据模本生成创建数据表sql
-                Template template = templateEngine.getTemplate("mysql_table_create.ftl");
-                tableSql = template.render(new HashMap<String, Object>() {{
-                    put("tableName", baseData.getCode());
-                    put("comment", baseData.getDescription());
-                    put("engine", baseData.getEngine());
-                    put("collate", baseData.getCollation());
-                    put("autoIncrementVal", baseData.getAutoIncrementVal());
-                    put("columnList", baseData.getColumnList());
-                    put("indexList", baseData.getIndexList());
-                    put("fkList", baseData.getFkList());
-                }});
-
-            } else {
-                //存在则更新表
-                //根据模本生成更新数据表sql
-                Template template = templateEngine.getTemplate("mysql_table_update.ftl");
-                tableSql = template.render(new HashMap<String, Object>() {{
-                    put("tableName", baseData.getCode());
-                    put("comment", baseData.getDescription());
-                    put("engine", baseData.getEngine());
-                    put("collate", baseData.getCollation());
-                    put("changeColumnList", baseData.getChangeColumnList());
-                }});
-
-            }
-
-            return saveApprovalLog(baseData, tableSql);
+            return generateSqlByTemplate(baseData);
 
         }
         return baseDataMapper.updateById(baseData);
+    }
+
+    /**
+     * 根据模板生成Sql 并添加审批记录
+     *
+     * @param baseData
+     * @return
+     */
+
+    private Integer generateSqlByTemplate(BaseData baseData) {
+        String tableSql;
+        //查询当前表是否创建
+        //列不存在则代表创建表
+        TableRequest tableRequest = new TableRequest();
+        tableRequest.setTableCode(baseData.getCode());
+        if (CollUtil.isEmpty(searchTableColumn(tableRequest))) {
+            //根据模本生成创建数据表sql
+            Template template = templateEngine.getTemplate("mysql_table_create.ftl");
+            tableSql = template.render(new HashMap<String, Object>() {{
+                put("tableName", baseData.getCode());
+                put("comment", baseData.getDescription());
+                put("engine", baseData.getEngine());
+                put("collate", baseData.getCollation());
+                put("autoIncrementVal", baseData.getAutoIncrementVal());
+                put("columnList", baseData.getColumnList());
+                put("indexList", baseData.getIndexList());
+                put("fkList", baseData.getFkList());
+            }});
+
+        } else {
+            //存在则更新表
+            //根据模本生成更新数据表sql
+            Template template = templateEngine.getTemplate("mysql_table_update.ftl");
+            tableSql = template.render(new HashMap<String, Object>() {{
+                put("tableName", baseData.getCode());
+                put("comment", baseData.getDescription());
+                put("engine", baseData.getEngine());
+                put("collate", baseData.getCollation());
+                put("changeColumnList", baseData.getChangeColumnList());
+                put("changeFkList", baseData.getChangeFkList());
+                put("changeIndexList", baseData.getChangeIndexList());
+            }});
+
+        }
+
+        return saveApprovalLog(baseData, tableSql);
     }
 
     /**
