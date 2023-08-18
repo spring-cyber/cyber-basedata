@@ -1,9 +1,11 @@
 package com.cyber.basedata.presentation.rest;
 
 import cn.hutool.core.lang.tree.Tree;
+import com.alibaba.fastjson.JSONObject;
 import com.cyber.application.controller.AuthingTokenController;
 import com.cyber.basedata.application.service.ApprovalLogService;
 import com.cyber.basedata.application.service.BaseDataService;
+import com.cyber.basedata.domain.request.TableRequest;
 import com.cyber.domain.constant.HttpResultCode;
 import com.cyber.domain.entity.*;
 import com.cyber.domain.request.*;
@@ -31,6 +33,21 @@ public class BaseDataRest extends AuthingTokenController{
         BaseData  basedata = request.toEvent(request.getTenantCode());
 		PagingData<BaseData> baseDataPage = baseDataService.selectPage(basedata);
 		response.setData(baseDataPage);
+		return response;
+	}
+	@GetMapping("/table/data")
+	public Response searchTableData(@Valid TableRequest request) {
+		DataResponse<PagingData<JSONObject>> response = new DataResponse<>();
+		PagingData<JSONObject> tableData = baseDataService.searchTableData(request);
+		response.setData(tableData);
+		return response;
+	}
+
+	@GetMapping("/table/column")
+	public Response searchTableColumn(@Valid TableRequest request) {
+		DataResponse<List<TableColumn>> response = new DataResponse<>();
+		List<TableColumn> tableColumn = baseDataService.searchTableColumn(request);
+		response.setData(tableColumn);
 		return response;
 	}
 
@@ -101,7 +118,7 @@ public class BaseDataRest extends AuthingTokenController{
 
 		} else if (!baseDataService.checkBaseDataCodeUnique(basedata)) {
 			return Response.fail(HttpResultCode.RECORD_EXIST.getCode(),
-					"新增主数据组/表'" + basedata.getCode() + "'失败，新增主数据组/表编码已存在或当前数据库已存在该表");
+					"新增主数据组/表'" + basedata.getCode() + "'失败，新增主数据组/表编码已存在");
 		}
 
 		int result = baseDataService.save(basedata);
@@ -122,7 +139,7 @@ public class BaseDataRest extends AuthingTokenController{
 
 		} else if (!baseDataService.checkBaseDataCodeUnique(basedata)) {
 			return Response.fail(HttpResultCode.RECORD_EXIST.getCode(),
-					"编辑主数据组/表'" + basedata.getCode() + "'失败，主数据组/表编码已存在或当前数据库已存在该表");
+					"编辑主数据组/表'" + basedata.getCode() + "'失败，主数据组/表编码已存在");
 		}
 
 		int result = baseDataService.updateById(basedata);

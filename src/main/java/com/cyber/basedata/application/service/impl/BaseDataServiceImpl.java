@@ -13,8 +13,11 @@ import com.cyber.basedata.domain.repository.BaseDataMapper;
 import com.cyber.basedata.domain.repository.TableColumnMapper;
 import com.cyber.basedata.domain.repository.TableFkMapper;
 import com.cyber.basedata.domain.repository.TableIndexMapper;
+import com.cyber.basedata.domain.request.TableRequest;
 import com.cyber.domain.constant.Constants;
+import com.cyber.domain.constant.HttpResultCode;
 import com.cyber.domain.entity.*;
+import com.cyber.domain.exception.BusinessException;
 import com.cyber.infrastructure.toolkit.StringUtils;
 import com.cyber.security.infrastructure.toolkit.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -167,18 +170,21 @@ public class BaseDataServiceImpl implements BaseDataService {
         //数据表 带出当前表属性和表索引还有外键
         if (BASE_DATA_TABLE.equals(baseData.getType())) {
             TableColumn tableColumn = new TableColumn();
+            tableColumn.setTableCode(baseData.getCode());
             tableColumn.setOffset(0);
             tableColumn.setLimit(Integer.MAX_VALUE);
 
             List<TableColumn> tableColumns = tableColumnMapper.selectByIndex(tableColumn);
 
             TableIndex tableIndex = new TableIndex();
+            tableIndex.setTableCode(baseData.getCode());
             tableIndex.setOffset(0);
             tableIndex.setLimit(Integer.MAX_VALUE);
 
             List<TableIndex> tableIndices = tableIndexMapper.selectByIndex(tableIndex);
 
             TableFk tableFk = new TableFk();
+            tableFk.setTableCode(baseData.getCode());
             tableFk.setOffset(0);
             tableFk.setLimit(Integer.MAX_VALUE);
 
@@ -269,7 +275,7 @@ public class BaseDataServiceImpl implements BaseDataService {
     public boolean checkBaseDataNameUnique(BaseData basedata) {
 
         String dictId = StringUtils.isNull(basedata.getId()) ? "" : basedata.getId();
-        Dict info = baseDataMapper.checkBaseDataNameUnique(basedata.getName(), basedata.getType(), basedata.getParentId());
+        BaseData info = baseDataMapper.checkBaseDataNameUnique(basedata.getName(), basedata.getType());
         if (StringUtils.isNotNull(info) && !Objects.equals(info.getId(), dictId)) {
             return Constants.NOT_UNIQUE;
         }
@@ -279,15 +285,8 @@ public class BaseDataServiceImpl implements BaseDataService {
     @Override
     public boolean checkBaseDataCodeUnique(BaseData baseData) {
 
-        // 数据表 判断当前表名是否在数据库存在
-        if (BASE_DATA_TABLE.equals(baseData.getType())) {
-            if (!Objects.isNull(baseDataMapper.hasTableForDatabase(baseData.getCode()))) {
-                return Constants.UNIQUE;
-            }
-        }
-
         String dictId = StringUtils.isNull(baseData.getId()) ? "" : baseData.getId();
-        Dict info = baseDataMapper.checkBaseDataCodeUnique(baseData.getCode(), baseData.getType(), baseData.getParentId());
+        BaseData info = baseDataMapper.checkBaseDataCodeUnique(baseData.getCode(), baseData.getType());
         if (StringUtils.isNotNull(info) && !Objects.equals(info.getId(), dictId)) {
             return Constants.NOT_UNIQUE;
         }
@@ -299,5 +298,60 @@ public class BaseDataServiceImpl implements BaseDataService {
 
         int result = baseDataMapper.hasChildByBaseDataId(baseDataId);
         return result > 0;
+    }
+
+    @Override
+    public PagingData<JSONObject> searchTableData(TableRequest tableRequest) {
+        PagingData<JSONObject> PagingData = new PagingData<>();
+
+        if (null == tableRequest) {
+            log.warn("select searchTableData page, but tableRequest is null...");
+            return PagingData;
+        }
+
+        BaseData temp = new BaseData();
+        temp.setType(BASE_DATA_TABLE);
+        temp.setCode(tableRequest.getTableCode());
+        if (checkBaseDataCodeUnique(temp)) {
+            throw new BusinessException("数据表 '" + tableRequest.getTableCode() + "' 不存在", HttpResultCode.PARAM_ERROR.getCode());
+        }
+
+        Integer queryCount = baseDataMapper.selectTableDataCount(tableRequest);
+        PagingData.setRow(queryCount);
+
+        if (queryCount <= 0) {
+            log.info("select baseData page , but count {} == 0 ...", queryCount);
+            return PagingData;
+        }
+
+        List<JSONObject> baseDatas = selectTableDataByIndex(tableRequest);
+        PagingData.setData(baseDatas);
+        return PagingData;
+    }
+
+    public List<JSONObject> selectTableDataByIndex(TableRequest tableRequest) {
+        List<JSONObject> baseDatas = new ArrayList<>();
+        if (null == tableRequest) {
+            log.warn("select tableData by index, but tableRequest is null ...");
+            return baseDatas;
+        }
+
+        baseDatas = baseDataMapper.selectTableDataByIndex(tableRequest);
+
+        return baseDatas;
+    }
+
+    @Override
+    public List<TableColumn> searchTableColumn(TableRequest tableRequest) {
+        if (null == tableRequest) {
+            log.warn("select search table column , but tableRequest is null ...");
+            return null;
+        }
+        TableColumn tableColumn = new TableColumn();
+        tableColumn.setTableCode(tableRequest.getTableCode());
+        tableColumn.setOffset(0);
+        tableColumn.setLimit(Integer.MAX_VALUE);
+
+        return tableColumnMapper.selectByIndex(tableColumn);
     }
 }

@@ -90,31 +90,45 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
         }
         //通过后执行变更
         if (APPROVAL_LOG_PASS.equals(approvalLog.getStatus())) {
-            ApprovalLog temp = new ApprovalLog();
-            temp.setId(approvalLog.getId());
-            temp = selectOne(temp);
-
-            tableColumnMapper.deleteByTableCode(temp.getTableCode());
-            tableIndexMapper.deleteByTableCode(temp.getTableCode());
-            tableFkMapper.deleteByTableCode(temp.getTableCode());
-
-            BaseData baseData = JSONObject.toJavaObject(temp.getInitData(), BaseData.class);
-            baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-            baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-            baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-
-            tableColumnMapper.saveBatch(baseData.getColumnList());
-            tableIndexMapper.saveBatch(baseData.getIndexList());
-            tableFkMapper.saveBatch(baseData.getFkList());
-
-            List<String> sqlList = Arrays.stream(temp.getChangeSql().split(";")).filter(StrUtil::isNotBlank).collect(Collectors.toList());
-            for (String sql : sqlList) {
-                baseDataMapper.executeSql(sql);
-            }
-
+            executeSqlChange(approvalLog);
         }
 
         return approvalLogMapper.updateById(approvalLog);
+    }
+
+    private void executeSqlChange(ApprovalLog approvalLog) {
+        ApprovalLog temp = new ApprovalLog();
+        temp.setId(approvalLog.getId());
+        temp = selectOne(temp);
+
+        if (APPROVAL_LOG_PASS.equals(temp.getStatus())) {
+            throw new BusinessException("当前审批已通过请勿重复提交！", HttpResultCode.VALIDATE_ERROR.getCode());
+        }
+
+        tableColumnMapper.deleteByTableCode(temp.getTableCode());
+        tableIndexMapper.deleteByTableCode(temp.getTableCode());
+        tableFkMapper.deleteByTableCode(temp.getTableCode());
+
+        BaseData baseData = JSONObject.toJavaObject(temp.getInitData(), BaseData.class);
+        baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+        baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+        baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+
+        tableColumnMapper.saveBatch(baseData.getColumnList());
+        tableIndexMapper.saveBatch(baseData.getIndexList());
+        tableFkMapper.saveBatch(baseData.getFkList());
+
+        List<String> sqlList = Arrays.stream(temp.getChangeSql().split(";")).filter(StrUtil::isNotBlank).collect(Collectors.toList());
+
+        try {
+            for (String sql : sqlList) {
+                baseDataMapper.executeSql(sql);
+            }
+        } catch (Exception e) {
+            throw new BusinessException("sql执行异常：" + e.getMessage(), HttpResultCode.BAD_SQL_ERROR.getCode());
+        }
+
+        baseDataMapper.updateById(baseData);
     }
 
     @Override
