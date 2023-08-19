@@ -1,6 +1,8 @@
 package com.cyber.basedata.application.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.cyber.basedata.application.service.ApprovalLogService;
@@ -107,33 +109,43 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
         ApprovalLog temp = new ApprovalLog();
         temp.setId(approvalLog.getId());
         temp = selectOne(temp);
+        if (null == temp) {
+            throw new BusinessException("当前审批不存在", HttpResultCode.PARAM_ERROR.getCode());
+        }
 
         if (APPROVAL_LOG_PASS.equals(temp.getStatus())) {
             throw new BusinessException("当前审批已通过请勿重复提交！", HttpResultCode.VALIDATE_ERROR.getCode());
         }
 
-        tableColumnMapper.deleteByTableCode(temp.getTableCode());
-        tableIndexMapper.deleteByTableCode(temp.getTableCode());
-        tableFkMapper.deleteByTableCode(temp.getTableCode());
-
         BaseData baseData = JSONObject.toJavaObject(temp.getInitData(), BaseData.class);
-        baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-        baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-        baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+        if (!ObjectUtil.isEmpty(baseData)) {
 
-        tableColumnMapper.saveBatch(baseData.getColumnList());
-        tableIndexMapper.saveBatch(baseData.getIndexList());
-        tableFkMapper.saveBatch(baseData.getFkList());
+            baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
 
+            tableColumnMapper.deleteByTableCode(temp.getTableCode());
+            tableIndexMapper.deleteByTableCode(temp.getTableCode());
+            tableFkMapper.deleteByTableCode(temp.getTableCode());
+
+            if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
+                tableColumnMapper.saveBatch(baseData.getColumnList());
+                tableIndexMapper.saveBatch(baseData.getIndexList());
+                tableFkMapper.saveBatch(baseData.getFkList());
+
+                baseDataMapper.updateById(baseData);
+            } else {
+                baseDataMapper.deleteById(baseData);
+            }
+
+        }
         executeSql(temp.getChangeSql().split(";"));
-
-        baseDataMapper.updateById(baseData);
     }
 
+    @Transactional(rollbackFor = BusinessException.class)
     public void executeSql(String... sqls) {
-        Connection conn;
+        Connection conn = DataSourceUtils.getConnection(dataSource);
         try {
-            conn = DataSourceUtils.getConnection(dataSource);
             conn.setAutoCommit(false);
             conn.beginRequest();
             Statement statement = conn.createStatement();

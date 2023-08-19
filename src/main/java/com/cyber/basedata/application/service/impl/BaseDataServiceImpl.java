@@ -89,8 +89,11 @@ public class BaseDataServiceImpl implements BaseDataService {
             String tableSql = template.render(new HashMap<>() {{
                 put("tableName", finalBaseData.getCode());
             }});
+            baseData.setColumnList(new ArrayList<>());
+            baseData.setIndexList(new ArrayList<>());
+            baseData.setFkList(new ArrayList<>());
 
-            return saveApprovalLog(baseData, tableSql);
+            return saveApprovalLog(baseData.getCode(),baseData, tableSql);
 
         }
         return baseDataMapper.deleteById(baseData);
@@ -156,7 +159,7 @@ public class BaseDataServiceImpl implements BaseDataService {
 
         }
 
-        return saveApprovalLog(baseData, tableSql);
+        return saveApprovalLog(baseData.getCode(),baseData, tableSql);
     }
 
     /**
@@ -164,11 +167,11 @@ public class BaseDataServiceImpl implements BaseDataService {
      * @param tableSql sql脚本
      * @return
      */
-    private Integer saveApprovalLog(BaseData baseData, String tableSql) {
+    private Integer saveApprovalLog(String tableCode,BaseData baseData, String tableSql) {
         ApprovalLog approvalLog = new ApprovalLog();
         approvalLog.setChangeSql(tableSql);
         approvalLog.setId(IdUtil.simpleUUID());
-        approvalLog.setTableCode(baseData.getCode());
+        approvalLog.setTableCode(tableCode);
         approvalLog.setInitData((JSONObject) JSONObject.toJSON(baseData));
         approvalLog.setStatus(ApprovalLogServiceImpl.APPROVAL_LOG_UNTREATED);
         approvalLog.setCreator(SecurityUtils.getUsername());
@@ -369,5 +372,20 @@ public class BaseDataServiceImpl implements BaseDataService {
         tableColumn.setLimit(Integer.MAX_VALUE);
 
         return tableColumnMapper.selectByIndex(tableColumn);
+    }
+
+    @Override
+    @Transactional
+    public int changeTableData(TableRequest request) {
+        //根据模本生成删除数据表sql
+        Template template = templateEngine.getTemplate("mysql_column_change.ftl");
+        String tableSql = template.render(new HashMap<>() {{
+            put("tableName", request.getTableCode());
+            put("columnNames", request.getColumnNames());
+            put("addDataList", request.getAddDataList());
+            put("removeIdList", request.getRemoveIdList());
+        }});
+
+        return saveApprovalLog(request.getTableCode(),null, tableSql);
     }
 }
