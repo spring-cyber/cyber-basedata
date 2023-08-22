@@ -1,0 +1,11 @@
+version: '1.0'
+name: 'cyber'
+services:
+  cyber-basedata:
+    build:
+      dockerfile: Dockerfile
+    container_name: cyber-basedata
+    image: cyber-basedata
+    restart: always
+    ports:
+      - "8083:8083"
