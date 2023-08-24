@@ -160,6 +160,28 @@
                 <!--                    </execution>-->
                 <!--                </executions>-->
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <executable>docker-build</executable>
+                    <arguments>
+                        <!-- 是否开启打包镜像并推送 -->
+                        <argument>true</argument>
+                        <!-- 镜像地址 -->
+                        <argument>113.108.106.175:444/cmp/cyber-basedata-api</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

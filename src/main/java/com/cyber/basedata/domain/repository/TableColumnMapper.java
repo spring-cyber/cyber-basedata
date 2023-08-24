@@ -12,4 +12,6 @@ public interface TableColumnMapper extends BaseMapper<TableColumn> {
     int deleteByTableCode(String tableCode);
 
     int saveBatch(List<TableColumn> columnList);
+
+    List<TableColumn> selectList(TableColumn tableColumn);
 }

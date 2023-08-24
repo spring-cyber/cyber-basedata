@@ -12,4 +12,6 @@ public interface TableFkMapper extends BaseMapper<TableFk> {
     int deleteByTableCode(String tableCode);
 
     int saveBatch(List<TableFk> fkList);
+
+    List<TableFk> selectList(TableFk tableFk);
 }

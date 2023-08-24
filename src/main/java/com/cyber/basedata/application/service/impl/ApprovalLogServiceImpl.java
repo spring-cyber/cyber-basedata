@@ -129,10 +129,15 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
             tableFkMapper.deleteByTableCode(temp.getTableCode());
 
             if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
-                tableColumnMapper.saveBatch(baseData.getColumnList());
-                tableIndexMapper.saveBatch(baseData.getIndexList());
-                tableFkMapper.saveBatch(baseData.getFkList());
 
+                tableColumnMapper.saveBatch(baseData.getColumnList());
+
+                if (CollectionUtil.isNotEmpty(baseData.getIndexList())) {
+                    tableIndexMapper.saveBatch(baseData.getIndexList());
+                }
+                if (CollectionUtil.isNotEmpty(baseData.getFkList())) {
+                    tableFkMapper.saveBatch(baseData.getFkList());
+                }
                 baseDataMapper.updateById(baseData);
             } else {
                 baseDataMapper.deleteById(baseData);

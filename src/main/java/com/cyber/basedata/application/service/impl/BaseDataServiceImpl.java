@@ -23,6 +23,7 @@ import com.cyber.infrastructure.toolkit.StringUtils;
 import com.cyber.security.infrastructure.toolkit.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,7 +94,7 @@ public class BaseDataServiceImpl implements BaseDataService {
             baseData.setIndexList(new ArrayList<>());
             baseData.setFkList(new ArrayList<>());
 
-            return saveApprovalLog(baseData.getCode(),baseData, tableSql);
+            return saveApprovalLog(baseData.getCode(), baseData, tableSql);
 
         }
         return baseDataMapper.deleteById(baseData);
@@ -129,7 +130,8 @@ public class BaseDataServiceImpl implements BaseDataService {
         //列不存在则代表创建表
         TableRequest tableRequest = new TableRequest();
         tableRequest.setTableCode(baseData.getCode());
-        if (CollUtil.isEmpty(searchTableColumn(tableRequest))) {
+        List<TableColumn> oldColumns = searchTableColumn(tableRequest);
+        if (CollUtil.isEmpty(oldColumns)) {
             //根据模本生成创建数据表sql
             Template template = templateEngine.getTemplate("mysql_table_create.ftl");
             tableSql = template.render(new HashMap<String, Object>() {{
@@ -144,7 +146,19 @@ public class BaseDataServiceImpl implements BaseDataService {
             }});
 
         } else {
+
+            TableIndex tableIndex = new TableIndex();
+            tableIndex.setTableCode(baseData.getCode());
+            List<TableIndex> oldIndices = tableIndexMapper.selectList(tableIndex);
+
+            TableFk tableFk = new TableFk();
+            tableFk.setTableCode(baseData.getCode());
+            List<TableFk> oldFks = tableFkMapper.selectList(tableFk);
+
             //存在则更新表
+            List<TableColumn> changeColumnList = handleColumns(baseData, oldColumns);
+            List<TableFk> changeFkList = handleFks(baseData, oldFks);
+            List<TableIndex> changeIndexList = handleIndexes(baseData, oldIndices);
             //根据模本生成更新数据表sql
             Template template = templateEngine.getTemplate("mysql_table_update.ftl");
             tableSql = template.render(new HashMap<String, Object>() {{
@@ -152,14 +166,150 @@ public class BaseDataServiceImpl implements BaseDataService {
                 put("comment", baseData.getDescription());
                 put("engine", baseData.getEngine());
                 put("collate", baseData.getCollation());
-                put("changeColumnList", baseData.getChangeColumnList());
-                put("changeFkList", baseData.getChangeFkList());
-                put("changeIndexList", baseData.getChangeIndexList());
+                put("changeColumnList", changeColumnList);
+                put("changeFkList", changeFkList);
+                put("changeIndexList", changeIndexList);
             }});
 
         }
 
-        return saveApprovalLog(baseData.getCode(),baseData, tableSql);
+        return saveApprovalLog(baseData.getCode(), baseData, tableSql);
+    }
+
+    @NotNull
+    private List<TableIndex> handleIndexes(BaseData baseData, List<TableIndex> oldIndices) {
+        List<TableIndex> indexList = baseData.getIndexList();
+        //新增的索引
+        List<TableIndex> addIndex = indexList.stream()
+                .filter(index -> {
+                    if (index.getId() == null) {
+                        index.setWay("add");
+                        return true;
+                    }
+                    return false;
+                })
+                .collect(Collectors.toList());
+        //获取需要删除的索引
+        List<TableIndex> dropIndex = indexList.stream()
+                .filter(oldIndex -> {
+                            if (indexList.stream().noneMatch(newColumn -> newColumn.getId() != null && newColumn.getId().equals(oldIndex.getId()))) {
+                                oldIndex.setWay("drop");
+                                return true;
+                            }
+                            return false;
+                        }
+                )
+                .collect(Collectors.toList());
+        //变更的索引
+        indexList.forEach(newIndex ->
+                oldIndices.forEach(oldColumn -> {
+                            if (!newIndex.equals(oldColumn)) {
+                                TableIndex tableIndex = new TableIndex();
+                                tableIndex.setWay("drop");
+                                tableIndex.setName(oldColumn.getName());
+                                dropIndex.add(tableIndex);
+
+                                newIndex.setWay("add");
+                                addIndex.add(newIndex);
+                            }
+                        }
+                )
+        );
+
+        dropIndex.addAll(addIndex);
+        return dropIndex;
+    }
+
+    @NotNull
+    private List<TableFk> handleFks(BaseData baseData, List<TableFk> oldFks) {
+        List<TableFk> fkList = baseData.getFkList();
+        //新增的外键
+        List<TableFk> addFks = fkList.stream()
+                .filter(fk -> {
+                    if (fk.getId() == null) {
+                        fk.setWay("add");
+                        return true;
+                    }
+                    return false;
+                })
+                .collect(Collectors.toList());
+        //获取需要删除的外键
+        List<TableFk> dropFks = oldFks.stream()
+                .filter(oldFk -> {
+                            if (fkList.stream().noneMatch(newColumn -> newColumn.getId() != null && newColumn.getId().equals(oldFk.getId()))) {
+                                oldFk.setWay("drop");
+                                return true;
+                            }
+                            return false;
+                        }
+                )
+                .collect(Collectors.toList());
+        //变更的外键
+        fkList.forEach(newFk ->
+                oldFks.forEach(oldFk -> {
+                            if (!newFk.equals(oldFk)) {
+                                TableFk tableFk = new TableFk();
+                                tableFk.setWay("drop");
+                                tableFk.setName(oldFk.getName());
+                                dropFks.add(tableFk);
+
+                                newFk.setWay("add");
+                                addFks.add(newFk);
+                            }
+                        }
+                )
+        );
+
+        dropFks.addAll(addFks);
+        return dropFks;
+    }
+
+    @NotNull
+    private static List<TableColumn> handleColumns(BaseData baseData, List<TableColumn> oldColumns) {
+        List<TableColumn> columnList = baseData.getColumnList();
+        //新增的列
+        List<TableColumn> addColumn = columnList.stream()
+                .filter(column -> {
+                    if (column.getId() == null) {
+                        column.setWay("add");
+                        return true;
+                    }
+                    return false;
+                })
+                .collect(Collectors.toList());
+        //获取需要删除的列
+        List<TableColumn> dropColumn = oldColumns.stream()
+                .filter(oldColumn -> {
+                            if (columnList.stream().noneMatch(newColumn -> newColumn.getId() != null && newColumn.getId().equals(oldColumn.getId()))) {
+                                oldColumn.setWay("drop");
+                                return true;
+                            }
+                            return false;
+                        }
+
+                )
+                .collect(Collectors.toList());
+        //变更的列
+        List<TableColumn> changeColumn = columnList.stream()
+                .filter(newColumn ->
+                        oldColumns.stream()
+                                .anyMatch(oldColumn -> {
+                                            if (!newColumn.equals(oldColumn)) {
+                                                newColumn.setWay("change");
+                                                newColumn.setCode(newColumn.getCode() + " " + oldColumn.getCode());
+                                                return true;
+                                            } else {
+                                                return false;
+                                            }
+                                        }
+
+                                )
+                )
+                .collect(Collectors.toList());
+
+        dropColumn.addAll(addColumn);
+        dropColumn.addAll(changeColumn);
+        return dropColumn;
     }
 
     /**
@@ -167,7 +317,7 @@ public class BaseDataServiceImpl implements BaseDataService {
      * @param tableSql sql脚本
      * @return
      */
-    private Integer saveApprovalLog(String tableCode,BaseData baseData, String tableSql) {
+    private Integer saveApprovalLog(String tableCode, BaseData baseData, String tableSql) {
         ApprovalLog approvalLog = new ApprovalLog();
         approvalLog.setChangeSql(tableSql);
         approvalLog.setId(IdUtil.simpleUUID());
@@ -190,24 +340,18 @@ public class BaseDataServiceImpl implements BaseDataService {
         if (BASE_DATA_TABLE.equals(baseData.getType())) {
             TableColumn tableColumn = new TableColumn();
             tableColumn.setTableCode(baseData.getCode());
-            tableColumn.setOffset(0);
-            tableColumn.setLimit(Integer.MAX_VALUE);
 
-            List<TableColumn> tableColumns = tableColumnMapper.selectByIndex(tableColumn);
+            List<TableColumn> tableColumns = tableColumnMapper.selectList(tableColumn);
 
             TableIndex tableIndex = new TableIndex();
             tableIndex.setTableCode(baseData.getCode());
-            tableIndex.setOffset(0);
-            tableIndex.setLimit(Integer.MAX_VALUE);
 
-            List<TableIndex> tableIndices = tableIndexMapper.selectByIndex(tableIndex);
+            List<TableIndex> tableIndices = tableIndexMapper.selectList(tableIndex);
 
             TableFk tableFk = new TableFk();
             tableFk.setTableCode(baseData.getCode());
-            tableFk.setOffset(0);
-            tableFk.setLimit(Integer.MAX_VALUE);
 
-            List<TableFk> tableFks = tableFkMapper.selectByIndex(tableFk);
+            List<TableFk> tableFks = tableFkMapper.selectList(tableFk);
 
             baseData.setColumnList(tableColumns);
             baseData.setIndexList(tableIndices);
@@ -368,10 +512,8 @@ public class BaseDataServiceImpl implements BaseDataService {
         }
         TableColumn tableColumn = new TableColumn();
         tableColumn.setTableCode(tableRequest.getTableCode());
-        tableColumn.setOffset(0);
-        tableColumn.setLimit(Integer.MAX_VALUE);
 
-        return tableColumnMapper.selectByIndex(tableColumn);
+        return tableColumnMapper.selectList(tableColumn);
     }
 
     @Override
@@ -386,6 +528,6 @@ public class BaseDataServiceImpl implements BaseDataService {
             put("removeIdList", request.getRemoveIdList());
         }});
 
-        return saveApprovalLog(request.getTableCode(),null, tableSql);
+        return saveApprovalLog(request.getTableCode(), null, tableSql);
     }
 }

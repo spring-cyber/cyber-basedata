@@ -12,4 +12,6 @@ public interface TableIndexMapper extends BaseMapper<TableIndex> {
     int deleteByTableCode(String tableCode);
 
     int saveBatch(List<TableIndex> indexList);
+
+    List<TableIndex> selectList(TableIndex tableIndex);
 }
