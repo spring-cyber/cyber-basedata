@@ -82,8 +82,8 @@ public class BaseDataServiceImpl implements BaseDataService {
             log.warn("delete baseData, but baseData is null  or baseData id is null...");
             return 0;
         }
-        // 数据表 不直接删除 添加到审批表
-        if (BASE_DATA_TABLE.equals(baseData.getType())) {
+        // 数据表如果存在数据库 不直接删除 添加到审批表
+        if (BASE_DATA_TABLE.equals(baseData.getType()) && !Objects.isNull(baseDataMapper.hasTableForDatabase(baseData.getCode()))) {
             //根据模本生成删除数据表sql
             Template template = templateEngine.getTemplate("mysql_table_delete.ftl");
             BaseData finalBaseData = baseData;

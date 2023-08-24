@@ -120,6 +120,8 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
         BaseData baseData = JSONObject.toJavaObject(temp.getInitData(), BaseData.class);
         if (!ObjectUtil.isEmpty(baseData)) {
 
+            executeSql(temp.getChangeSql().split(";"));
+
             baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
             baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
             baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
@@ -144,7 +146,6 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
             }
 
         }
-        executeSql(temp.getChangeSql().split(";"));
     }
 
     @Transactional(rollbackFor = BusinessException.class)
