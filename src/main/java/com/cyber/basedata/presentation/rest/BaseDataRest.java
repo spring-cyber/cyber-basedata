@@ -51,6 +51,13 @@ public class BaseDataRest extends AuthingTokenController {
         response.setData(tableColumn);
         return response;
     }
+    @GetMapping("/table/{tableCode}/{columnCode}")
+    public Response selectTableColumnData(@PathVariable String columnCode, @PathVariable String tableCode) {
+        DataResponse<List<JSONObject>> response = new DataResponse<>();
+        List<JSONObject> tableColumnData = baseDataService.selectTableColumnData(tableCode,columnCode);
+        response.setData(tableColumnData);
+        return response;
+    }
 
     @PutMapping("/table/data/change")
     public Response changeTableData(@RequestBody @Valid TableRequest request) {

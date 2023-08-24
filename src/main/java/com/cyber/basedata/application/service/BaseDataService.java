@@ -28,4 +28,6 @@ public interface BaseDataService extends BaseService<BaseData> {
     List<TableColumn> searchTableColumn(TableRequest request);
 
     int changeTableData(TableRequest request);
+
+    List<JSONObject> selectTableColumnData(String tableCode, String columnCode);
 }

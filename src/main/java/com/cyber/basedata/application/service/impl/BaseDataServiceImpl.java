@@ -1,6 +1,7 @@
 package com.cyber.basedata.application.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.lang.tree.TreeNode;
 import cn.hutool.core.lang.tree.TreeUtil;
@@ -159,6 +160,26 @@ public class BaseDataServiceImpl implements BaseDataService {
             List<TableColumn> changeColumnList = handleColumns(baseData, oldColumns);
             List<TableFk> changeFkList = handleFks(baseData, oldFks);
             List<TableIndex> changeIndexList = handleIndexes(baseData, oldIndices);
+
+            BaseData temp = new BaseData();
+            temp.setId(baseData.getId());
+            temp = selectOne(temp);
+
+            //检测是否需要更新表结构信息 不需要直接更新表格基础信息 不需要生成sql
+            if (!baseData.checkTableChange(temp)
+                    && CollUtil.isEmpty(changeColumnList)
+                    && CollUtil.isEmpty(changeFkList)
+                    && CollUtil.isEmpty(changeIndexList)) {
+
+                //可能有列只改变了排序
+                if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
+                    tableColumnMapper.deleteByTableCode(baseData.getCode());
+                    tableColumnMapper.saveBatch(baseData.getColumnList());
+                }
+                return baseDataMapper.updateById(baseData);
+            }
+
+
             //根据模本生成更新数据表sql
             Template template = templateEngine.getTemplate("mysql_table_update.ftl");
             tableSql = template.render(new HashMap<String, Object>() {{
@@ -202,11 +223,11 @@ public class BaseDataServiceImpl implements BaseDataService {
                 .collect(Collectors.toList());
         //变更的索引
         indexList.forEach(newIndex ->
-                oldIndices.forEach(oldColumn -> {
-                            if (!newIndex.equals(oldColumn)) {
+                oldIndices.forEach(oldIndex -> {
+                            if (oldIndex.getId().equals(newIndex.getId()) && !newIndex.equals(oldIndex)) {
                                 TableIndex tableIndex = new TableIndex();
                                 tableIndex.setWay("drop");
-                                tableIndex.setName(oldColumn.getName());
+                                tableIndex.setName(oldIndex.getName());
                                 dropIndex.add(tableIndex);
 
                                 newIndex.setWay("add");
@@ -247,7 +268,7 @@ public class BaseDataServiceImpl implements BaseDataService {
         //变更的外键
         fkList.forEach(newFk ->
                 oldFks.forEach(oldFk -> {
-                            if (!newFk.equals(oldFk)) {
+                            if (oldFk.getId().equals(newFk.getId()) && !newFk.equals(oldFk)) {
                                 TableFk tableFk = new TableFk();
                                 tableFk.setWay("drop");
                                 tableFk.setName(oldFk.getName());
@@ -294,9 +315,9 @@ public class BaseDataServiceImpl implements BaseDataService {
                 .filter(newColumn ->
                         oldColumns.stream()
                                 .anyMatch(oldColumn -> {
-                                            if (!newColumn.equals(oldColumn)) {
+                                            if (oldColumn.getId().equals(newColumn.getId()) && !newColumn.equals(oldColumn)) {
                                                 newColumn.setWay("change");
-                                                newColumn.setCode(newColumn.getCode() + " " + oldColumn.getCode());
+                                                newColumn.setCode(oldColumn.getCode() + " " + newColumn.getCode());
                                                 return true;
                                             } else {
                                                 return false;
@@ -340,6 +361,8 @@ public class BaseDataServiceImpl implements BaseDataService {
         if (BASE_DATA_TABLE.equals(baseData.getType())) {
             TableColumn tableColumn = new TableColumn();
             tableColumn.setTableCode(baseData.getCode());
+            tableColumn.setSortBy("order_num");
+            tableColumn.setSortType("asc");
 
             List<TableColumn> tableColumns = tableColumnMapper.selectList(tableColumn);
 
@@ -529,5 +552,16 @@ public class BaseDataServiceImpl implements BaseDataService {
         }});
 
         return saveApprovalLog(request.getTableCode(), null, tableSql);
+    }
+
+    @Override
+    public List<JSONObject> selectTableColumnData(String tableCode, String columnCode) {
+        BaseData temp = new BaseData();
+        temp.setType(BASE_DATA_TABLE);
+        temp.setCode(tableCode);
+        if (checkBaseDataCodeUnique(temp)) {
+            throw new BusinessException("数据表 '" + tableCode + "' 不存在", HttpResultCode.PARAM_ERROR.getCode());
+        }
+        return baseDataMapper.selectTableColumnData(tableCode, columnCode);
     }
 }

@@ -27,7 +27,7 @@ alter table ${tableName}
 <#if changeFkList?has_content>
 alter table ${tableName}
     <#list changeFkList as fk>
-        <#if column.way='drop'>
+        <#if fk.way='drop'>
     drop foreign key `${fk.name}`<#if fk?has_next>,<#else >;</#if>
         <#else >
     ${fk.way} constraint `${fk.name}`
@@ -39,11 +39,11 @@ alter table ${tableName}
 
 <#if changeIndexList?has_content>
     <#list changeIndexList as index>
-        <#if column.way='drop'>
+        <#if index.way='drop'>
     drop index ${tableName} on `${index.name}`<#if index?has_next>,<#else >;</#if>
         <#else >
     ${index.way} ${index.type} ${index.name}
-            on ${tableName} (${index.columnCode} <#if index.sortord?has_content>${index.sortord}</#if>) comment '${index.description}';
+            on ${tableName} (${index.columnCode} <#if index.sortord?has_content>${index.sortord}</#if>) <#if index.description?has_content>comment '${index.description}'</#if>;
         </#if>
    </#list>
 </#if>

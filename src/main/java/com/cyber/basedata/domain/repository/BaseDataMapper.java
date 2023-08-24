@@ -27,4 +27,6 @@ public interface BaseDataMapper extends BaseMapper<BaseData> {
     Integer selectTableDataCount(TableRequest tableRequest);
 
     List<JSONObject> selectTableDataByIndex(TableRequest tableRequest);
+
+    List<JSONObject> selectTableColumnData(@Param("tableCode") String tableCode, @Param("columnCode")  String columnCode);
 }
