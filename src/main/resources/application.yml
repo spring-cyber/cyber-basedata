@@ -1,22 +1,22 @@
 spring:
   application:
-    name: cyber-basedata
+    name: @artifactId@
   cloud:
     nacos:
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
       discovery:
-        namespace: ${nacos_namespace:e37c06b6-14d4-486f-bee1-866123743ba9}
-        server-addr: ${nacos_serveraddr:192.168.0.11:30287}
-        group: ${nacos_group:ljm}
+        namespace: ${NACOS_NAMESPACE:e37c06b6-14d4-486f-bee1-866123743ba9}
+#        server-addr: ${NACOS_HOST:cyber-nacos}:${NACOS_PORT:8848}
+        server-addr: ${NACOS_HOST:192.168.0.11}:${NACOS_PORT:30287}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
       config:
-        namespace: ${nacos_namespace:e37c06b6-14d4-486f-bee1-866123743ba9}
-        server-addr: ${nacos_serveraddr:192.168.0.11:30287}
-        username: ${nacos_username:nacos}
-        password: ${nacos_password:nacos}
-        group: ${nacos_group:DEFAULT_GROUP}
-        file-extension: yml
+        namespace: ${spring.cloud.nacos.discovery.namespace}
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
   config:
     import:
-      - nacos:application.yml
-      - nacos:cyber-basedata.yml
+      - optional:nacos:application.yml
+      - optional:nacos:cyber-basedata.yml
   main:
     allow-bean-definition-overriding: true

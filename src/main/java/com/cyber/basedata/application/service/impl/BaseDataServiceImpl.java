@@ -87,7 +87,7 @@ public class BaseDataServiceImpl implements BaseDataService {
             //根据模本生成删除数据表sql
             Template template = templateEngine.getTemplate("mysql_table_delete.ftl");
             BaseData finalBaseData = baseData;
-            String tableSql = template.render(new HashMap<>() {{
+            String tableSql = template.render(new HashMap<String, Object>() {{
                 put("tableName", finalBaseData.getCode());
             }});
             baseData.setColumnList(new ArrayList<>());
@@ -521,7 +521,7 @@ public class BaseDataServiceImpl implements BaseDataService {
     public int changeTableData(TableRequest request) {
         //根据模本生成删除数据表sql
         Template template = templateEngine.getTemplate("mysql_column_change.ftl");
-        String tableSql = template.render(new HashMap<>() {{
+        String tableSql = template.render(new HashMap<String, Object>() {{
             put("tableName", request.getTableCode());
             put("columnNames", request.getColumnNames());
             put("addDataList", request.getAddDataList());
