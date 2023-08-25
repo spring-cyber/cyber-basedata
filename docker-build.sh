@@ -15,7 +15,7 @@ v=''
 
 while [[ ! $v ]]
 do
-  read -p "请输入版本号: " v
+  read -p "请输入需要构建的镜像版本号例(0.0.1): " v
 done
 
 echo $2:$v
