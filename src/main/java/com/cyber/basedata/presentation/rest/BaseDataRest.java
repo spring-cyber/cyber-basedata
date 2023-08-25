@@ -53,8 +53,8 @@ public class BaseDataRest extends AuthingTokenController {
     }
     @GetMapping("/table/{tableCode}/{columnCode}")
     public Response selectTableColumnData(@PathVariable String columnCode, @PathVariable String tableCode) {
-        DataResponse<List<JSONObject>> response = new DataResponse<>();
-        List<JSONObject> tableColumnData = baseDataService.selectTableColumnData(tableCode,columnCode);
+        DataResponse<List<Object>> response = new DataResponse<>();
+        List<Object> tableColumnData = baseDataService.selectTableColumnData(tableCode,columnCode);
         response.setData(tableColumnData);
         return response;
     }

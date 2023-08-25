@@ -317,7 +317,8 @@ public class BaseDataServiceImpl implements BaseDataService {
                                 .anyMatch(oldColumn -> {
                                             if (oldColumn.getId().equals(newColumn.getId()) && !newColumn.equals(oldColumn)) {
                                                 newColumn.setWay("change");
-                                                newColumn.setCode(oldColumn.getCode() + " " + newColumn.getCode());
+                                                newColumn.setCode(newColumn.getCode());
+                                                newColumn.setOldCode(oldColumn.getCode());
                                                 return true;
                                             } else {
                                                 return false;
@@ -555,7 +556,7 @@ public class BaseDataServiceImpl implements BaseDataService {
     }
 
     @Override
-    public List<JSONObject> selectTableColumnData(String tableCode, String columnCode) {
+    public List<Object> selectTableColumnData(String tableCode, String columnCode) {
         BaseData temp = new BaseData();
         temp.setType(BASE_DATA_TABLE);
         temp.setCode(tableCode);

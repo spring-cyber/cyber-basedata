@@ -29,5 +29,5 @@ public interface BaseDataService extends BaseService<BaseData> {
 
     int changeTableData(TableRequest request);
 
-    List<JSONObject> selectTableColumnData(String tableCode, String columnCode);
+    List<Object> selectTableColumnData(String tableCode, String columnCode);
 }
