@@ -1,6 +1,8 @@
 #!/bin/sh
-if [ $1 = 'false' ]; then
+
+if [ "$1" = "false" ]; then
     exit
+fi
 
 set -e
 
@@ -27,5 +29,3 @@ echo Packaged successfully
 echo Packaged path: $2
 echo Packaged version: $v
 echo Packing completion time: $(date +"%Y年%m月%d日 %H时%M分%S秒")
-
-exit
