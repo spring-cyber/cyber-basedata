@@ -120,7 +120,7 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
         BaseData baseData = JSONObject.toJavaObject(temp.getInitData(), BaseData.class);
         if (!ObjectUtil.isEmpty(baseData)) {
 
-            executeSql(temp.getChangeSql().split(";"));
+            executeSql(approvalLog,temp.getChangeSql().split(";"));
 
             baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
             baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
@@ -149,7 +149,7 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
     }
 
     @Transactional(rollbackFor = BusinessException.class)
-    public void executeSql(String... sqls) {
+    public void executeSql(ApprovalLog approvalLog,String... sqls) {
         Connection conn = DataSourceUtils.getConnection(dataSource);
         try {
             conn.setAutoCommit(false);
@@ -164,7 +164,8 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
             conn.commit();
 
         } catch (SQLException e) {
-            throw new BusinessException("sql执行异常：" + e.getMessage(), HttpResultCode.BAD_SQL_ERROR.getCode());
+            approvalLog.setCause("sql执行异常：" + e.getMessage());
+            throw new BusinessException(approvalLog.getCause(), HttpResultCode.BAD_SQL_ERROR.getCode());
         }
 
     }

@@ -348,7 +348,12 @@ public class BaseDataServiceImpl implements BaseDataService {
         approvalLog.setStatus(ApprovalLogServiceImpl.APPROVAL_LOG_UNTREATED);
         approvalLog.setCreator(SecurityUtils.getUsername());
         approvalLog.setCreateTime(new Date());
-        return approvalLogService.save(approvalLog);
+        approvalLogService.save(approvalLog);
+
+        ApprovalLog temp = new ApprovalLog();
+        temp.setId(approvalLog.getId());
+        temp.setStatus(ApprovalLogServiceImpl.APPROVAL_LOG_PASS);
+        return approvalLogService.updateById(temp);
     }
 
     @Override
