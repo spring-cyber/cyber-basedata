@@ -557,7 +557,11 @@ public class BaseDataServiceImpl implements BaseDataService {
             put("removeIdList", request.getRemoveIdList());
         }});
 
-        return saveApprovalLog(request.getTableCode(), null, tableSql);
+        BaseData temp = new BaseData();
+        temp.setCode(request.getTableCode());
+        temp = selectOne(temp);
+
+        return saveApprovalLog(request.getTableCode(), temp, tableSql);
     }
 
     @Override
