@@ -1,7 +1,7 @@
 create table ${tableName}
 (
 <#list columnList as column>
-    ${column.code} ${column.type}<#if column.length!=0>(${column.length})</#if> <#if column.defaultVal?has_content>default ${column.defaultVal}</#if> <#if column.autoIncrement=1>auto_increment</#if> <#if column.notNull=0>null<#else >not null</#if> comment '${column.name}' <#if column.primaryKey=1>primary key</#if><#if column?has_next || fkList?has_content>,</#if>
+    ${column.code} ${column.type}<#if column.length?has_content&& column.length?is_number&& column.length != 0>(${column.length})</#if> <#if column.defaultVal?has_content>default ${column.defaultVal}</#if> <#if column.autoIncrement=1>auto_increment</#if> <#if column.notNull=0>null<#else >not null</#if> comment '${column.name}' <#if column.primaryKey=1>primary key</#if><#if column?has_next || fkList?has_content>,</#if>
 </#list>
 
 <#if fkList?has_content>

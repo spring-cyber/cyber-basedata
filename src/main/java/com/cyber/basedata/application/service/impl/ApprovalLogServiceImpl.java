@@ -70,9 +70,9 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
             return 0;
         }
 
-        if (approvalLogMapper.hasUntreatedByTableCode(approvalLog.getTableCode()) > 0) {
-            throw new BusinessException("当前数据表已冻结：存在未处理变更记录", HttpResultCode.RECORD_EXIST.getCode());
-        }
+//        if (approvalLogMapper.hasUntreatedByTableCode(approvalLog.getTableCode()) > 0) {
+//            throw new BusinessException("当前数据表已冻结：存在未处理变更记录", HttpResultCode.RECORD_EXIST.getCode());
+//        }
 
         return approvalLogMapper.save(approvalLog);
     }
@@ -120,36 +120,38 @@ public class ApprovalLogServiceImpl implements ApprovalLogService {
         BaseData baseData = JSONObject.toJavaObject(temp.getInitData(), BaseData.class);
         if (!ObjectUtil.isEmpty(baseData)) {
 
-            executeSql(approvalLog,temp.getChangeSql().split(";"));
+            executeSql(approvalLog, temp.getChangeSql().split(";"));
 
-            baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-            baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-            baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
+                baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            }
+            if (CollectionUtil.isNotEmpty(baseData.getIndexList())) {
+                baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            }
+            if (CollectionUtil.isNotEmpty(baseData.getFkList())) {
+                baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            }
 
             tableColumnMapper.deleteByTableCode(temp.getTableCode());
             tableIndexMapper.deleteByTableCode(temp.getTableCode());
             tableFkMapper.deleteByTableCode(temp.getTableCode());
 
-            if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
-
-                tableColumnMapper.saveBatch(baseData.getColumnList());
-
-                if (CollectionUtil.isNotEmpty(baseData.getIndexList())) {
-                    tableIndexMapper.saveBatch(baseData.getIndexList());
-                }
-                if (CollectionUtil.isNotEmpty(baseData.getFkList())) {
-                    tableFkMapper.saveBatch(baseData.getFkList());
-                }
-                baseDataMapper.updateById(baseData);
-            } else {
-                baseDataMapper.deleteById(baseData);
+            if (CollectionUtil.isNotEmpty(baseData.getIndexList())) {
+                tableIndexMapper.saveBatch(baseData.getIndexList());
             }
+            if (CollectionUtil.isNotEmpty(baseData.getFkList())) {
+                tableFkMapper.saveBatch(baseData.getFkList());
+            }
+            if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
+                tableColumnMapper.saveBatch(baseData.getColumnList());
+            }
+            baseDataMapper.updateById(baseData);
 
         }
     }
 
     @Transactional(rollbackFor = BusinessException.class)
-    public void executeSql(ApprovalLog approvalLog,String... sqls) {
+    public void executeSql(ApprovalLog approvalLog, String... sqls) {
         Connection conn = DataSourceUtils.getConnection(dataSource);
         try {
             conn.setAutoCommit(false);

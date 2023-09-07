@@ -5,6 +5,7 @@ import com.cyber.domain.entity.ApprovalLog;
 
 public interface ApprovalLogService extends BaseService<ApprovalLog> {
 
+    void executeSql(ApprovalLog approvalLog, String... sqls);
 
 
 }

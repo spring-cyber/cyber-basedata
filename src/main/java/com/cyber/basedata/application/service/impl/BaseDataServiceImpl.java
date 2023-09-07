@@ -65,6 +65,10 @@ public class BaseDataServiceImpl implements BaseDataService {
             return 0;
         }
         baseData.setId(IdUtil.simpleUUID());
+        // 数据表如果存在数据库提示用户
+        if (BASE_DATA_TABLE.equals(baseData.getType()) && !Objects.isNull(baseDataMapper.hasTableForDatabase(baseData.getCode()))) {
+            throw new BusinessException("数据表已存在", HttpResultCode.PARAM_ERROR.getCode());
+        }
         return baseDataMapper.save(baseData);
     }
 
@@ -95,8 +99,8 @@ public class BaseDataServiceImpl implements BaseDataService {
             baseData.setIndexList(new ArrayList<>());
             baseData.setFkList(new ArrayList<>());
 
-            return saveApprovalLog(baseData.getCode(), baseData, tableSql);
-
+            saveApprovalLog(baseData.getCode(), baseData, tableSql);
+            return baseDataMapper.deleteById(baseData);
         }
         return baseDataMapper.deleteById(baseData);
     }
@@ -110,8 +114,24 @@ public class BaseDataServiceImpl implements BaseDataService {
             return 0;
         }
 
-        // 数据表 不直接更新 添加到审批表
+        // 数据表
         if (BASE_DATA_TABLE.equals(baseData.getType())) {
+            if (CollectionUtil.isNotEmpty(baseData.getIndexList())) {
+                tableIndexMapper.deleteByTableCode(baseData.getCode());
+                baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+                tableIndexMapper.saveBatch(baseData.getIndexList());
+            }
+            if (CollectionUtil.isNotEmpty(baseData.getFkList())) {
+                tableFkMapper.deleteByTableCode(baseData.getCode());
+                baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+                tableFkMapper.saveBatch(baseData.getFkList());
+            }
+            if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
+                tableColumnMapper.deleteByTableCode(baseData.getCode());
+                baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+                tableColumnMapper.saveBatch(baseData.getColumnList());
+            }
+            baseDataMapper.updateById(baseData);
             return generateSqlByTemplate(baseData);
 
         }
@@ -200,6 +220,9 @@ public class BaseDataServiceImpl implements BaseDataService {
     @NotNull
     private List<TableIndex> handleIndexes(BaseData baseData, List<TableIndex> oldIndices) {
         List<TableIndex> indexList = baseData.getIndexList();
+        if (CollectionUtil.isEmpty(indexList)) {
+            return new ArrayList<>();
+        }
         //新增的索引
         List<TableIndex> addIndex = indexList.stream()
                 .filter(index -> {
@@ -244,6 +267,9 @@ public class BaseDataServiceImpl implements BaseDataService {
     @NotNull
     private List<TableFk> handleFks(BaseData baseData, List<TableFk> oldFks) {
         List<TableFk> fkList = baseData.getFkList();
+        if (CollectionUtil.isEmpty(fkList)) {
+            return new ArrayList<>();
+        }
         //新增的外键
         List<TableFk> addFks = fkList.stream()
                 .filter(fk -> {
@@ -288,6 +314,10 @@ public class BaseDataServiceImpl implements BaseDataService {
     @NotNull
     private static List<TableColumn> handleColumns(BaseData baseData, List<TableColumn> oldColumns) {
         List<TableColumn> columnList = baseData.getColumnList();
+
+        if (CollectionUtil.isEmpty(columnList)) {
+            return new ArrayList<>();
+        }
         //新增的列
         List<TableColumn> addColumn = columnList.stream()
                 .filter(column -> {
@@ -298,6 +328,7 @@ public class BaseDataServiceImpl implements BaseDataService {
                     return false;
                 })
                 .collect(Collectors.toList());
+
         //获取需要删除的列
         List<TableColumn> dropColumn = oldColumns.stream()
                 .filter(oldColumn -> {
@@ -310,6 +341,7 @@ public class BaseDataServiceImpl implements BaseDataService {
 
                 )
                 .collect(Collectors.toList());
+
         //变更的列
         List<TableColumn> changeColumn = columnList.stream()
                 .filter(newColumn ->
@@ -348,12 +380,8 @@ public class BaseDataServiceImpl implements BaseDataService {
         approvalLog.setStatus(ApprovalLogServiceImpl.APPROVAL_LOG_UNTREATED);
         approvalLog.setCreator(SecurityUtils.getUsername());
         approvalLog.setCreateTime(new Date());
-        approvalLogService.save(approvalLog);
-
-        ApprovalLog temp = new ApprovalLog();
-        temp.setId(approvalLog.getId());
-        temp.setStatus(ApprovalLogServiceImpl.APPROVAL_LOG_PASS);
-        return approvalLogService.updateById(temp);
+        approvalLogService.executeSql(approvalLog, tableSql.split(";"));
+        return approvalLogService.save(approvalLog);
     }
 
     @Override
@@ -540,6 +568,8 @@ public class BaseDataServiceImpl implements BaseDataService {
             return null;
         }
         TableColumn tableColumn = new TableColumn();
+        tableColumn.setSortType(tableRequest.getSortType());
+        tableColumn.setSortBy(tableRequest.getSortBy());
         tableColumn.setTableCode(tableRequest.getTableCode());
 
         return tableColumnMapper.selectList(tableColumn);

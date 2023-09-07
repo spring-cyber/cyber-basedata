@@ -19,7 +19,7 @@ alter table ${tableName}
         <#if column.way='drop'>
     drop column ${column.code}<#if column?has_next>,<#else >;</#if>
         <#else >
-    ${column.way} <#if column.oldCode?has_content>${column.oldCode}</#if> <#if column.code?has_content>${column.code}</#if> ${column.type}<#if column.length!=0>(${column.length})</#if> <#if column.defaultVal?has_content>default ${column.defaultVal}</#if> <#if column.autoIncrement=1>auto_increment</#if> <#if column.notNull=0>null<#else >not null</#if> comment '${column.name}' <#if column.primaryKey=1>primary key</#if><#if column?has_next>,<#else >;</#if>
+    ${column.way} <#if column.oldCode?has_content>${column.oldCode}</#if> <#if column.code?has_content>${column.code}</#if> ${column.type}<#if column.length?has_content&& column.length?is_number&& column.length != 0>(${column.length})</#if> <#if column.defaultVal?has_content>default ${column.defaultVal}</#if> <#if column.autoIncrement=1>auto_increment</#if> <#if column.notNull=0>null<#else >not null</#if> comment '${column.name}' <#if column.primaryKey=1>primary key</#if><#if column?has_next>,<#else >;</#if>
         </#if>
    </#list>
 </#if>
