@@ -116,22 +116,6 @@ public class BaseDataServiceImpl implements BaseDataService {
 
         // 数据表
         if (BASE_DATA_TABLE.equals(baseData.getType())) {
-            if (CollectionUtil.isNotEmpty(baseData.getIndexList())) {
-                tableIndexMapper.deleteByTableCode(baseData.getCode());
-                baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-                tableIndexMapper.saveBatch(baseData.getIndexList());
-            }
-            if (CollectionUtil.isNotEmpty(baseData.getFkList())) {
-                tableFkMapper.deleteByTableCode(baseData.getCode());
-                baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-                tableFkMapper.saveBatch(baseData.getFkList());
-            }
-            if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
-                tableColumnMapper.deleteByTableCode(baseData.getCode());
-                baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
-                tableColumnMapper.saveBatch(baseData.getColumnList());
-            }
-            baseDataMapper.updateById(baseData);
             return generateSqlByTemplate(baseData);
 
         }
@@ -153,6 +137,9 @@ public class BaseDataServiceImpl implements BaseDataService {
         tableRequest.setTableCode(baseData.getCode());
         List<TableColumn> oldColumns = searchTableColumn(tableRequest);
         if (CollUtil.isEmpty(oldColumns)) {
+            if (CollectionUtil.isEmpty(baseData.getColumnList())) {
+                return baseDataMapper.updateById(baseData);
+            }
             //根据模本生成创建数据表sql
             Template template = templateEngine.getTemplate("mysql_table_create.ftl");
             tableSql = template.render(new HashMap<String, Object>() {{
@@ -211,7 +198,6 @@ public class BaseDataServiceImpl implements BaseDataService {
                 put("changeFkList", changeFkList);
                 put("changeIndexList", changeIndexList);
             }});
-
         }
 
         return saveApprovalLog(baseData.getCode(), baseData, tableSql);
@@ -227,14 +213,14 @@ public class BaseDataServiceImpl implements BaseDataService {
         List<TableIndex> addIndex = indexList.stream()
                 .filter(index -> {
                     if (index.getId() == null) {
-                        index.setWay("add");
+                        index.setWay("create");
                         return true;
                     }
                     return false;
                 })
                 .collect(Collectors.toList());
         //获取需要删除的索引
-        List<TableIndex> dropIndex = indexList.stream()
+        List<TableIndex> dropIndex = oldIndices.stream()
                 .filter(oldIndex -> {
                             if (indexList.stream().noneMatch(newColumn -> newColumn.getId() != null && newColumn.getId().equals(oldIndex.getId()))) {
                                 oldIndex.setWay("drop");
@@ -247,13 +233,13 @@ public class BaseDataServiceImpl implements BaseDataService {
         //变更的索引
         indexList.forEach(newIndex ->
                 oldIndices.forEach(oldIndex -> {
-                            if (oldIndex.getId().equals(newIndex.getId()) && !newIndex.equals(oldIndex)) {
+                            if (newIndex.getId() != null && oldIndex.getId().equals(newIndex.getId()) && !newIndex.equals(oldIndex)) {
                                 TableIndex tableIndex = new TableIndex();
                                 tableIndex.setWay("drop");
                                 tableIndex.setName(oldIndex.getName());
                                 dropIndex.add(tableIndex);
 
-                                newIndex.setWay("add");
+                                newIndex.setWay("create");
                                 addIndex.add(newIndex);
                             }
                         }
@@ -294,7 +280,7 @@ public class BaseDataServiceImpl implements BaseDataService {
         //变更的外键
         fkList.forEach(newFk ->
                 oldFks.forEach(oldFk -> {
-                            if (oldFk.getId().equals(newFk.getId()) && !newFk.equals(oldFk)) {
+                            if (newFk.getId() != null && oldFk.getId().equals(newFk.getId()) && !newFk.equals(oldFk)) {
                                 TableFk tableFk = new TableFk();
                                 tableFk.setWay("drop");
                                 tableFk.setName(oldFk.getName());
@@ -347,7 +333,7 @@ public class BaseDataServiceImpl implements BaseDataService {
                 .filter(newColumn ->
                         oldColumns.stream()
                                 .anyMatch(oldColumn -> {
-                                            if (oldColumn.getId().equals(newColumn.getId()) && !newColumn.equals(oldColumn)) {
+                                            if (newColumn.getId() != null && oldColumn.getId().equals(newColumn.getId()) && !newColumn.equals(oldColumn)) {
                                                 newColumn.setWay("change");
                                                 newColumn.setCode(newColumn.getCode());
                                                 newColumn.setOldCode(oldColumn.getCode());
@@ -381,6 +367,22 @@ public class BaseDataServiceImpl implements BaseDataService {
         approvalLog.setCreator(SecurityUtils.getUsername());
         approvalLog.setCreateTime(new Date());
         approvalLogService.executeSql(approvalLog, tableSql.split(";"));
+
+        if (CollectionUtil.isNotEmpty(baseData.getIndexList())) {
+            tableIndexMapper.deleteByTableCode(baseData.getCode());
+            baseData.getIndexList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            tableIndexMapper.saveBatch(baseData.getIndexList());
+        }
+        if (CollectionUtil.isNotEmpty(baseData.getFkList())) {
+            tableFkMapper.deleteByTableCode(baseData.getCode());
+            baseData.getFkList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            tableFkMapper.saveBatch(baseData.getFkList());
+        }
+        if (CollectionUtil.isNotEmpty(baseData.getColumnList())) {
+            tableColumnMapper.deleteByTableCode(baseData.getCode());
+            baseData.getColumnList().forEach(tableColumn -> tableColumn.setId(IdUtil.simpleUUID()));
+            tableColumnMapper.saveBatch(baseData.getColumnList());
+        }
         return approvalLogService.save(approvalLog);
     }
 
