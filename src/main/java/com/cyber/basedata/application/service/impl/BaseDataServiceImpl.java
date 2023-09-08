@@ -183,7 +183,6 @@ public class BaseDataServiceImpl implements BaseDataService {
                     tableColumnMapper.deleteByTableCode(baseData.getCode());
                     tableColumnMapper.saveBatch(baseData.getColumnList());
                 }
-                return baseDataMapper.updateById(baseData);
             }
 
 
@@ -198,6 +197,8 @@ public class BaseDataServiceImpl implements BaseDataService {
                 put("changeFkList", changeFkList);
                 put("changeIndexList", changeIndexList);
             }});
+
+            baseDataMapper.updateById(baseData);
         }
 
         return saveApprovalLog(baseData.getCode(), baseData, tableSql);
